@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tech Typer Game</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      color: #4CAF50;
+      font-size: 2.5rem;
+    }
+
+    select, input[type="text"] {
+      padding: 10px;
+      font-size: 1rem;
+      margin: 10px;
+      border-radius: 6px;
+      border: 2px solid #2196F3;
+    }
+
+    #definition {
+      font-size: 1.2rem;
+      margin: 25px auto 10px;
+      width: 70%;
+      background: #fff3cd;
+      padding: 20px;
+      border-radius: 10px;
+      border: 2px solid #ffeeba;
+    }
+
+    #result, #hint {
+      margin: 15px;
+      font-weight: bold;
+    }
+
+    #score, #timer, #highScore {
+      font-size: 1.2rem;
+      margin: 10px;
+    }
+
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      background: #4CAF50;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #388E3C;
+    }
+
+    .blinking {
+      animation: blink 1s step-start 0s infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎮 Tech Typer Game</h1>
+
+  <label>Choose Level:</label>
+  <select id="levelSelect">
+    <option value="easy">Easy</option>
+    <option value="medium">Medium</option>
+    <option value="hard">Hard</option>
+  </select>
+
+  <label>Choose Category:</label>
+  <select id="categorySelect">
+    <option value="all">All</option>
+    <option value="web">Web</option>
+    <option value="programming">Programming</option>
+    <option value="tools">Tools</option>
+    <option value="misc">Misc</option>
+  </select>
+
+  <div id="definition">Click Start to begin!</div>
+
+  <input type="text" id="inputBox" placeholder="Type the answer..." disabled />
+  <div id="result"></div>
+  <div id="hint"></div>
+
+  <div id="score">Score: 0</div>
+  <div id="highScore">🏆 High Score: 0</div>
+  <div id="timer" class="blinking">⏳ Time Left: 30 sec</div>
+
+  <button onclick="startGame()">▶️ Start Game</button>
+  <button onclick="endGame()">⛔ End Game</button>
+
+  <script>
+    const terms = [
+      // Web
+      { term: "HTML", desc: "Structure of a web page.", level: "easy", category: "web" },
+      { term: "CSS", desc: "Style and layout for web pages.", level: "easy", category: "web" },
+      { term: "JavaScript", desc: "Interactive features on web pages.", level: "medium", category: "web" },
+      { term: "Bootstrap", desc: "CSS framework for responsive design.", level: "medium", category: "web" },
+      { term: "React", desc: "Library for building user interfaces.", level: "hard", category: "web" },
+
+      // Programming
+      { term: "Python", desc: "Simple and powerful programming language.", level: "easy", category: "programming" },
+      { term: "C", desc: "Low-level procedural programming language.", level: "easy", category: "programming" },
+      { term: "Object", desc: "Instance of a class in OOP.", level: "medium", category: "programming" },
+      { term: "Recursion", desc: "Function calling itself.", level: "hard", category: "programming" },
+
+      // Tools
+      { term: "GitHub", desc: "Collaborative code hosting.", level: "easy", category: "tools" },
+      { term: "VSCode", desc: "Popular code editor.", level: "medium", category: "tools" },
+      { term: "Terminal", desc: "Command-line interface.", level: "hard", category: "tools" },
+
+      // Misc
+      { term: "IoT", desc: "Internet-connected devices sharing data.", level: "easy", category: "misc" },
+      { term: "AI", desc: "Machines doing smart tasks.", level: "easy", category: "misc" },
+      { term: "Neural", desc: "Type of network in deep learning.", level: "hard", category: "misc" },
+    ];
+
+    let score = 0;
+    let timeLeft = 30;
+    let currentTerm = "";
+    let currentHint = "";
+    let timer;
+    let highScore = localStorage.getItem("techTyperHighScore") || 0;
+
+    const defDiv = document.getElementById("definition");
+    const inputBox = document.getElementById("inputBox");
+    const resultDiv = document.getElementById("result");
+    const scoreDiv = document.getElementById("score");
+    const timerDiv = document.getElementById("timer");
+    const highScoreDiv = document.getElementById("highScore");
+    const hintDiv = document.getElementById("hint");
+    const levelSelect = document.getElementById("levelSelect");
+    const categorySelect = document.getElementById("categorySelect");
+
+    highScoreDiv.textContent = `🏆 High Score: ${highScore}`;
+
+    function startGame() {
+      score = 0;
+      timeLeft = 30;
+      inputBox.disabled = false;
+      inputBox.value = "";
+      resultDiv.textContent = "";
+      hintDiv.textContent = "";
+      inputBox.focus();
+      scoreDiv.textContent = `Score: ${score}`;
+      startTimer();
+      nextTerm();
+    }
+
+    function endGame() {
+      clearInterval(timer);
+      inputBox.disabled = true;
+      defDiv.textContent = "❌ Game Ended!";
+      resultDiv.innerHTML = `🎉 Final Score: <b>${score}</b>`;
+      updateHighScore();
+      timerDiv.textContent = `⏳ Time Left: 0 sec`;
+    }
+
+    function startTimer() {
+      clearInterval(timer);
+      timer = setInterval(() => {
+        timeLeft--;
+        timerDiv.textContent = `⏳ Time Left: ${timeLeft} sec`;
+        if (timeLeft <= 5) timerDiv.classList.add("blinking");
+
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          inputBox.disabled = true;
+          defDiv.textContent = "⏱️ Time's up!";
+          resultDiv.innerHTML = `🎉 Final Score: <b>${score}</b>`;
+          updateHighScore();
+        }
+      }, 1000);
+    }
+
+    function nextTerm() {
+      const level = levelSelect.value;
+      const category = categorySelect.value;
+
+      const filtered = terms.filter(t =>
+        (level === "all" || t.level === level) &&
+        (category === "all" || t.category === category)
+      );
+
+      if (filtered.length === 0) {
+        defDiv.textContent = "No words for this level & category!";
+        inputBox.disabled = true;
+        return;
+      }
+
+      const random = filtered[Math.floor(Math.random() * filtered.length)];
+      currentTerm = random.term.toLowerCase();
+      currentHint = currentTerm.slice(0, 2);
+      defDiv.textContent = random.desc;
+      inputBox.value = "";
+      resultDiv.textContent = "";
+      hintDiv.textContent = "";
+    }
+
+    inputBox.addEventListener("keyup", function (e) {
+      if (e.key === "Enter") checkAnswer();
+    });
+
+    function checkAnswer() {
+      const userInput = inputBox.value.trim().toLowerCase();
+      if (userInput === currentTerm) {
+        resultDiv.textContent = "✅ Correct!";
+        hintDiv.textContent = "";
+        score++;
+        scoreDiv.textContent = `Score: ${score}`;
+        nextTerm();
+      } else {
+        resultDiv.textContent = "❌ Try again!";
+        hintDiv.textContent = `💡 Hint: Starts with "${currentHint}..."`;
+      }
+    }
+
+    function updateHighScore() {
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem("techTyperHighScore", highScore);
+        highScoreDiv.textContent = `🏆 High Score: ${highScore}`;
+      }
+    }
+  </script>
+
+</body>
+</html>

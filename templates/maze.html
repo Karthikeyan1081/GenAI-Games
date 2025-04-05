@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Adaptive Maze Game</title>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        .maze-container { display: grid; gap: 2px; margin: 20px auto; }
+        .cell { width: 30px; height: 30px; display: inline-block; transition: background 0.2s ease-in-out; }
+        .wall { background: black; }
+        .path { background: white; }
+        .player { background: blue; }
+        .goal { background: green; }
+        .hint { background: yellow; }
+        .block { background: red; }
+        .controls { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>AI Adaptive Maze Game</h1>
+    <p>Time: <span id="timer">0</span>s | Best Time: <span id="best-time">--</span>s</p>
+    <div id="maze" class="maze-container"></div>
+    <button onclick="generateMaze()">New Maze</button>
+    <button onclick="showHint()">Hint</button>
+    <div class="controls">
+        <button onclick="movePlayer(-1, 0)">⬆️</button><br>
+        <button onclick="movePlayer(0, -1)">⬅️</button>
+        <button onclick="movePlayer(1, 0)">⬇️</button>
+        <button onclick="movePlayer(0, 1)">➡️</button>
+    </div>
+    <script>
+        // Retrieve previous performance data from local storage
+        let previousPerformance = JSON.parse(localStorage.getItem("playerPerformance")) || { speed: 0, accuracy: 0, difficulty: "medium" };
+        
+        // Adjust maze size based on difficulty level
+        let mazeSize = previousPerformance.difficulty === "high" ? 23 : previousPerformance.difficulty === "low" ? 9 : 15;
+        const ROWS = mazeSize, COLS = mazeSize;
+        
+        // Define player and goal positions
+        let player = { x: 1, y: 1 }, goal = { x: ROWS - 2, y: COLS - 2 };
+        let maze = [];
+        let timer = 0, bestTime = localStorage.getItem("bestTime") || "--";
+        document.getElementById("best-time").innerText = bestTime;
+        let interval;
+        
+        // Generate a new maze
+        function generateMaze() {
+            clearInterval(interval);
+            timer = 0;
+            document.getElementById("timer").innerText = timer;
+            
+            // Start a timer
+            interval = setInterval(() => {
+                timer++;
+                document.getElementById("timer").innerText = timer;
+            }, 1000);
+            
+            // Initialize the maze grid with walls
+            maze = Array(ROWS).fill().map(() => Array(COLS).fill(1));
+            
+            // Generate multiple paths in the maze
+            carveMultiplePaths(1, 1);
+            maze[1][1] = 0;
+            maze[goal.x][goal.y] = 0;
+            player = { x: 1, y: 1 };
+            renderMaze();
+        }
+        
+        // Function to create multiple paths in the maze
+        function carveMultiplePaths(x, y) {
+            maze[x][y] = 0;
+            let directions = [[0, -2], [0, 2], [-2, 0], [2, 0]].sort(() => Math.random() - 0.5);
+            
+            directions.forEach(([dx, dy]) => {
+                const nx = x + dx, ny = y + dy;
+                if (nx > 0 && ny > 0 && nx < ROWS - 1 && ny < COLS - 1 && maze[nx][ny] === 1) {
+                    maze[x + dx / 2][y + dy / 2] = 0;
+                    carveMultiplePaths(nx, ny);
+                    
+                    // Randomly create additional paths to increase complexity
+                    if (Math.random() > 0.2) {
+                        let extraX = x + Math.sign(dx), extraY = y + Math.sign(dy);
+                        if (maze[extraX] && maze[extraX][extraY] === 1) {
+                            maze[extraX][extraY] = 0;
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Render the maze in the HTML document
+        function renderMaze() {
+            const mazeDiv = document.getElementById("maze");
+            mazeDiv.innerHTML = "";
+            mazeDiv.style.gridTemplateColumns = `repeat(${COLS}, 30px)`;
+            
+            maze.forEach((row, i) => {
+                row.forEach((cell, j) => {
+                    const div = document.createElement("div");
+                    div.className = "cell " + (cell ? "wall" : "path");
+                    if (i === player.x && j === player.y) div.classList.add("player");
+                    if (i === goal.x && j === goal.y) div.classList.add("goal");
+                    mazeDiv.appendChild(div);
+                });
+            });
+        }
+        
+        // Move the player if the path is open
+        function movePlayer(dx, dy) {
+            let newX = player.x + dx;
+            let newY = player.y + dy;
+            if (maze[newX] && maze[newX][newY] === 0) {
+                player.x = newX;
+                player.y = newY;
+                renderMaze();
+                
+                // Check if player reached the goal
+                if (player.x === goal.x && player.y === goal.y) {
+                    clearInterval(interval);
+                    alert("Congratulations! You completed the maze in " + timer + " seconds.");
+                    
+                    // Update performance and difficulty level
+                    if (bestTime === "--" || timer < bestTime) {
+                        bestTime = timer;
+                        localStorage.setItem("bestTime", timer);
+                        document.getElementById("best-time").innerText = timer;
+                    }
+                    previousPerformance.speed = timer;
+                    previousPerformance.difficulty = timer < 20 ? "high" : timer < 40 ? "medium" : "low";
+                    localStorage.setItem("playerPerformance", JSON.stringify(previousPerformance));
+                    generateMaze();
+                }
+            }
+        }
+        
+        document.addEventListener("keydown", (e) => {
+            const moves = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+            if (moves[e.key]) movePlayer(...moves[e.key]);
+        });
+        
+        generateMaze();
+    </script>
+</body>
+</html>

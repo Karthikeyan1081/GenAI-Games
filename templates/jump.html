@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Code Dash: Jump to Learn!</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #87ceeb;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #87ceeb;
+    }
+    #inputScreen, #resultScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+    #inputScreen input, #inputScreen button, #resultScreen button {
+      padding: 10px;
+      font-size: 18px;
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="inputScreen">
+    <h1>Welcome to Code Dash!</h1>
+    <input type="text" id="playerName" placeholder="Enter your name" />
+    <input type="text" id="playerDomain" placeholder="Enter your topic (Python, C, etc)" />
+    <button onclick="startGame()">Start Game</button>
+  </div>
+
+  <div id="resultScreen" style="display:none;">
+    <h1>🎉 Game Over!</h1>
+    <h2 id="finalScore"></h2>
+    <h3 id="answerList"></h3>
+    <button onclick="location.reload()">Play Again</button>
+  </div>
+
+  <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const ground = 300;
+    let score = 0;
+    let playerName = "", playerDomain = "";
+    let paused = false;
+
+    const char = {
+      x: 100,
+      y: ground - 50,
+      width: 50,
+      height: 50,
+      vy: 0,
+      jumping: false
+    };
+
+    let isSpacePressed = false;
+    let spaceHoldTime = 0;
+
+    let questions = [];
+    let currentQuestion = null;
+    let optionBlocks = [];
+    let answeredOnce = false;
+    let correctAnswers = [];
+
+    const topics = {
+      python: [
+        {
+          question: "What keyword defines a function in Python?",
+          options: ["func", "def", "define", "function"],
+          answer: "def"
+        },
+        {
+          question: "Which symbol is used for comments in Python?",
+          options: ["//", "--", "#", "/* */"],
+          answer: "#"
+        },
+      ],
+      "c programming": [
+        {
+          question: "Which keyword is used to define a function in C?",
+          options: ["def", "void", "func", "define"],
+          answer: "void"
+        },
+        {
+          question: "Correct syntax for a for loop in C?",
+          options: ["for i in range(5)", "for(i=0;i<5;i++)", "foreach i in 5", "loop 5 times"],
+          answer: "for(i=0;i<5;i++)"
+        },
+      ],
+      html: [
+        {
+          question: "What does HTML stand for?",
+          options: ["Hyper Trainer Marking Language", "HyperText Markup Language", "HyperText Markdown Language", "None"],
+          answer: "HyperText Markup Language"
+        },
+        {
+          question: "Which tag is used for a paragraph?",
+          options: ["<p>", "<h1>", "<div>", "<para>"],
+          answer: "<p>"
+        },
+      ]
+    };
+
+    function startGame() {
+      playerName = document.getElementById("playerName").value;
+      playerDomain = document.getElementById("playerDomain").value.toLowerCase();
+
+      let selectedTopic = Object.keys(topics).find(t => playerDomain.includes(t));
+      if (!selectedTopic) selectedTopic = "python";
+
+      questions = [...topics[selectedTopic]];
+      currentQuestion = questions.shift();
+      generateOptions();
+
+      document.getElementById("inputScreen").style.display = "none";
+      requestAnimationFrame(gameLoop);
+    }
+
+    function generateOptions() {
+      optionBlocks = [];
+      answeredOnce = false;
+      currentQuestion.options.forEach((opt, i) => {
+        optionBlocks.push({
+          x: 800 + i * 180,
+          y: ground - 50,
+          width: 150,
+          height: 50,
+          text: opt,
+          answered: false
+        });
+      });
+    }
+
+    function drawChar() {
+      ctx.fillStyle = "black";
+      ctx.fillRect(char.x, char.y, char.width, char.height);
+    }
+
+    function drawOptions() {
+      ctx.font = "16px Arial";
+      optionBlocks.forEach((b) => {
+        b.x -= 4;
+        ctx.fillStyle = "red";
+        ctx.fillRect(b.x, b.y, b.width, b.height);
+        ctx.fillStyle = "white";
+        ctx.fillText(b.text, b.x + 10, b.y + 30);
+      });
+    }
+
+    function drawQuestion() {
+      ctx.fillStyle = "black";
+      ctx.font = "20px Arial";
+      ctx.fillText(currentQuestion.question, 20, 30);
+      ctx.fillText(`${playerName}'s Score: ${score}`, 600, 30);
+    }
+
+    function updateJump() {
+      if (char.jumping) {
+        if (isSpacePressed && spaceHoldTime < 20) {
+          char.vy = 15;
+          spaceHoldTime++;
+        }
+        char.y -= char.vy;
+        char.vy -= 1;
+
+        if (char.y >= ground - char.height) {
+          char.y = ground - char.height;
+          char.jumping = false;
+          char.vy = 0;
+          spaceHoldTime = 0;
+        }
+      }
+    }
+
+    function checkCollision() {
+      if (answeredOnce) return;
+      optionBlocks.forEach((block) => {
+        if (!block.answered &&
+          char.x < block.x + block.width &&
+          char.x + char.width > block.x &&
+          char.y + char.height >= block.y &&
+          char.y + char.height <= block.y + block.height
+        ) {
+          block.answered = true;
+          answeredOnce = true;
+          paused = true;
+
+          if (block.text === currentQuestion.answer) {
+            score += 10;
+            correctAnswers.push(`✅ ${currentQuestion.question} → ${currentQuestion.answer}`);
+          } else {
+            score = Math.max(0, score - 5);
+            correctAnswers.push(`❌ ${currentQuestion.question} → ${currentQuestion.answer}`);
+          }
+
+          setTimeout(() => {
+            paused = false;
+            if (questions.length > 0) {
+              currentQuestion = questions.shift();
+              generateOptions();
+            } else {
+              document.getElementById("finalScore").innerText = `${playerName} your final score is: ${score}`;
+              document.getElementById("answerList").innerHTML = correctAnswers.map(a => `<div>${a}</div>`).join('');
+              document.getElementById("resultScreen").style.display = "flex";
+              canvas.style.display = "none";
+            }
+          }, 500);
+        }
+      });
+    }
+
+    function gameLoop() {
+      if (paused) return requestAnimationFrame(gameLoop);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawQuestion();
+      drawChar();
+      drawOptions();
+      updateJump();
+      checkCollision();
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        isSpacePressed = true;
+        if (!char.jumping) {
+          char.jumping = true;
+          char.vy = 10;
+        }
+      }
+    });
+
+    document.addEventListener("keyup", (e) => {
+      if (e.code === "Space") {
+        isSpacePressed = false;
+      }
+    });
+  </script>
+</body>
+</html>

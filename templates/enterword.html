@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Code Dash Game</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: monospace;
+    }
+
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    h1 {
+      margin: 20px 0;
+    }
+
+    #gameArea {
+      position: relative;
+      width: 80%;
+      height: 70vh;
+      background: #1e293b;
+      border: 2px solid #38bdf8;
+      overflow: hidden;
+    }
+
+    .word {
+      position: absolute;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #38bdf8;
+    }
+
+    #inputArea {
+      margin-top: 20px;
+    }
+
+    input {
+      padding: 10px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      outline: none;
+    }
+
+    #scoreBoard {
+      margin-top: 10px;
+      font-size: 1.1rem;
+      color: #10b981;
+    }
+
+    #gameOver {
+      font-size: 2rem;
+      color: #ef4444;
+      margin-top: 20px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>💻 Code Dash Game</h1>
+
+  <div id="gameArea"></div>
+
+  <div id="inputArea">
+    <input type="text" id="inputBox" placeholder="Type here..." autocomplete="off" />
+  </div>
+
+  <div id="scoreBoard">Score: 0</div>
+  <div id="gameOver">Game Over! Refresh to play again.</div>
+
+  <script>
+    const words = ["function", "loop", "variable", "const", "let", "array", "object", "return", "if", "else", "switch", "break", "continue", "class", "import", "export", "try", "catch", "async", "await"];
+    const gameArea = document.getElementById("gameArea");
+    const inputBox = document.getElementById("inputBox");
+    const scoreBoard = document.getElementById("scoreBoard");
+    const gameOverText = document.getElementById("gameOver");
+
+    let score = 0;
+    let gameInterval;
+    let fallSpeed = 1;
+    let activeWords = [];
+
+    function getRandomWord() {
+      return words[Math.floor(Math.random() * words.length)];
+    }
+
+    function spawnWord() {
+      const word = document.createElement("div");
+      word.className = "word";
+      word.innerText = getRandomWord();
+      word.style.left = Math.random() * (gameArea.clientWidth - 100) + "px";
+      word.style.top = "0px";
+      gameArea.appendChild(word);
+      activeWords.push(word);
+    }
+
+    function moveWords() {
+      for (let i = 0; i < activeWords.length; i++) {
+        const word = activeWords[i];
+        const currentTop = parseFloat(word.style.top);
+        if (currentTop + fallSpeed > gameArea.clientHeight - 30) {
+          // Word hit bottom = game over
+          clearInterval(gameInterval);
+          gameOverText.style.display = "block";
+          inputBox.disabled = true;
+          return;
+        }
+        word.style.top = currentTop + fallSpeed + "px";
+      }
+    }
+
+    function checkInput() {
+      const typed = inputBox.value.trim();
+      for (let i = 0; i < activeWords.length; i++) {
+        if (activeWords[i].innerText === typed) {
+          gameArea.removeChild(activeWords[i]);
+          activeWords.splice(i, 1);
+          inputBox.value = "";
+          score += 1;
+          scoreBoard.innerText = `Score: ${score}`;
+          break;
+        }
+      }
+    }
+
+    inputBox.addEventListener("input", checkInput);
+
+    function startGame() {
+      gameInterval = setInterval(() => {
+        if (Math.random() < 0.15) spawnWord();
+        moveWords();
+      }, 60);
+    }
+
+    startGame();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Learning Match Game</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #dfe9f3, #ffffff);
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    #userPrompt, #topicPrompt, #gameContainer {
+      margin-top: 50px;
+    }
+    #controls {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 20px;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+    #gameBoard {
+      display: grid;
+      grid-template-columns: repeat(4, 140px);
+      gap: 15px;
+      justify-content: center;
+      margin-top: 10px;
+    }
+    .card {
+      background: #fff;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s, background-color 0.4s, border 0.4s;
+    }
+    .card:hover {
+      transform: scale(1.05);
+    }
+    .matched {
+      background-color: #c8f7c5;
+      color: #333;
+      border: 2px solid #28a745;
+      cursor: default;
+    }
+    .flash-red {
+      background-color: #f8d7da !important;
+      border: 2px solid #dc3545 !important;
+    }
+    #exitBtn, #replayBtn {
+      margin-top: 30px;
+      padding: 10px 20px;
+      background-color: #ff4d4d;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    #exitBtn:hover, #replayBtn:hover {
+      background-color: #e60000;
+    }
+  </style>
+</head>
+<body>
+  <div id="userPrompt">
+    <h1>Welcome! 🎉 What's your name?</h1>
+    <input type="text" id="userName" placeholder="Enter your name" />
+    <button onclick="proceedToTopic()">Next</button>
+  </div>
+
+  <div id="topicPrompt" style="display: none;">
+    <h1>Hi <span id="displayName"></span>! What topic are you interested in?</h1>
+    <input type="text" id="topicInput" placeholder="e.g., JavaScript" />
+    <button onclick="startGame()">Start Game</button>
+  </div>
+
+  <div id="gameContainer" style="display: none;">
+    <h1 id="greeting"></h1>
+    <div id="controls">
+      <div>⏱️ Time: <span id="timer">60</span>s</div>
+      <div>🎯 Score: <span id="score">0</span></div>
+      <div>🔁 Moves: <span id="moves">0</span></div>
+    </div>
+    <div id="gameBoard"></div>
+    <button id="exitBtn" onclick="exitGame()">🚪 Exit Game</button>
+    <button id="replayBtn" style="display:none" onclick="startOver()">🔁 Play Again</button>
+  </div>
+
+  <audio id="matchSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_35b30ca92a.mp3?filename=success-1-6297.mp3"></audio>
+  <audio id="failSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_6c37a21864.mp3?filename=wrong-2-122166.mp3"></audio>
+  <audio id="endSound" src="https://cdn.pixabay.com/download/audio/2022/10/25/audio_d2b90a7249.mp3?filename=game-over-arcade-6435.mp3"></audio>
+
+  <script>
+    let cards = [];
+    let score = 0;
+    let moves = 0;
+    let timeLeft = 60;
+    let timerInterval;
+    let firstCard = null;
+    let lock = false;
+    let userName = '';
+    let topic = '';
+
+    const matchSound = document.getElementById("matchSound");
+    const failSound = document.getElementById("failSound");
+    const endSound = document.getElementById("endSound");
+
+    function getTopicPairs(topic) {
+      const lower = topic.toLowerCase();
+      switch (lower) {
+        case "javascript":
+          return [
+            ["Variable", "Container for data"],
+            ["Function", "Reusable block of code"],
+            ["DOM", "Document Object Model"],
+            ["Event", "User interaction trigger"],
+          ];
+        case "python":
+          return [
+            ["List", "Ordered collection"],
+            ["Loop", "Repeats a block of code"],
+            ["Dictionary", "Key-value pairs"],
+            ["Tuple", "Immutable sequence"],
+          ];
+        case "iot":
+          return [
+            ["Sensor", "Detects changes in environment"],
+            ["Actuator", "Performs actions based on input"],
+            ["NodeMCU", "Popular IoT development board"],
+            ["MQTT", "Lightweight messaging protocol"],
+          ];
+        case "ai":
+          return [
+            ["Machine Learning", "AI that learns from data"],
+            ["Neural Network", "Model inspired by the human brain"],
+            ["Dataset", "Collection of data"],
+            ["Model", "Trained system for predictions"],
+          ];
+        default:
+          return null;
+      }
+    }
+
+    function proceedToTopic() {
+      userName = document.getElementById("userName").value.trim();
+      if (!userName) return alert("Please enter your name.");
+      document.getElementById("userPrompt").style.display = "none";
+      document.getElementById("topicPrompt").style.display = "block";
+      document.getElementById("displayName").textContent = userName;
+    }
+
+    function startGame() {
+      topic = document.getElementById("topicInput").value.trim();
+      if (!topic) return alert("Please enter a topic.");
+      const pairs = getTopicPairs(topic);
+      if (!pairs) return alert("Sorry, topic not available. Try JavaScript, Python, IoT, or AI.");
+
+      document.getElementById("topicPrompt").style.display = "none";
+      document.getElementById("gameContainer").style.display = "block";
+      document.getElementById("greeting").textContent = `Hello, ${userName}! Let's match & learn about ${topic}!`;
+      initGame(pairs);
+    }
+
+    function initGame(pairs) {
+      clearInterval(timerInterval);
+      document.getElementById("replayBtn").style.display = "none";
+      cards = [];
+      pairs.forEach(([term, def]) => {
+        cards.push({ text: term, match: def });
+        cards.push({ text: def, match: term });
+      });
+      cards = cards.sort(() => 0.5 - Math.random());
+
+      const board = document.getElementById('gameBoard');
+      board.innerHTML = '';
+      cards.forEach((card, index) => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.textContent = '?';
+        div.dataset.index = index;
+        div.dataset.text = card.text;
+        div.dataset.match = card.match;
+        board.appendChild(div);
+      });
+
+      board.querySelectorAll('.card').forEach(card => {
+        card.onclick = () => {
+          flipCard(card);
+        };
+      });
+
+      score = 0;
+      moves = 0;
+      timeLeft = 60;
+      firstCard = null;
+      lock = false;
+      document.getElementById("score").textContent = score;
+      document.getElementById("moves").textContent = moves;
+      document.getElementById("timer").textContent = timeLeft;
+
+      timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    function flipCard(cardElement) {
+      if (lock || cardElement.classList.contains('matched') || cardElement.textContent !== '?') return;
+
+      const cardData = {
+        text: cardElement.dataset.text,
+        match: cardElement.dataset.match
+      };
+
+      cardElement.textContent = cardData.text;
+
+      if (!firstCard) {
+        firstCard = { element: cardElement, data: cardData };
+      } else {
+        lock = true;
+        moves++;
+        document.getElementById("moves").textContent = moves;
+
+        setTimeout(() => {
+          if (firstCard.data.match === cardData.text) {
+            matchSound.play();
+            firstCard.element.classList.add('matched');
+            cardElement.classList.add('matched');
+            score++;
+            document.getElementById("score").textContent = score;
+            if (score === cards.length / 2) {
+              clearInterval(timerInterval);
+              document.getElementById("replayBtn").style.display = "inline-block";
+              alert("🎉 Great job! All pairs matched!");
+            }
+          } else {
+            failSound.play();
+            firstCard.element.classList.add("flash-red");
+            cardElement.classList.add("flash-red");
+            setTimeout(() => {
+              firstCard.element.classList.remove("flash-red");
+              cardElement.classList.remove("flash-red");
+              firstCard.element.textContent = '?';
+              cardElement.textContent = '?';
+            }, 300);
+          }
+          firstCard = null;
+          lock = false;
+        }, 600);
+      }
+    }
+
+    function updateTimer() {
+      timeLeft--;
+      document.getElementById("timer").textContent = timeLeft;
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        endSound.play();
+        alert("⏰ Time's up! Score: " + score);
+        document.getElementById("replayBtn").style.display = "inline-block";
+      }
+    }
+
+    function exitGame() {
+      if (confirm("Are you sure you want to exit and restart?")) {
+        startOver();
+      }
+    }
+
+    function startOver() {
+      clearInterval(timerInterval);
+      document.getElementById("gameContainer").style.display = "none";
+      document.getElementById("topicPrompt").style.display = "none";
+      document.getElementById("userPrompt").style.display = "block";
+      document.getElementById("userName").value = "";
+      document.getElementById("topicInput").value = "";
+      userName = '';
+      topic = '';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Aptitude Trainer Game</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #eef2f3;
+      padding: 40px;
+      text-align: center;
+    }
+    h1 { color: #2e8b57; font-size: 2.5rem; }
+    #question { font-size: 1.4rem; margin: 20px; }
+    .option-btn {
+      display: block;
+      margin: 10px auto;
+      padding: 10px 20px;
+      background: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      width: 300px;
+      cursor: pointer;
+    }
+    .option-btn:hover { background: #1976D2; }
+    #info, #result, #hint, #leaderboard { margin: 15px; font-weight: bold; }
+    #timer { font-size: 1.2rem; color: #d32f2f; }
+    button { margin-top: 15px; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <h1>🧠 Aptitude Trainer</h1>
+
+  <div id="question">Press Start to begin the game!</div>
+
+  <div id="options"></div>
+
+  <div id="info">Question <span id="qNumber">0</span> of 10</div>
+  <div id="timer">⏳ 30 seconds</div>
+  <div id="hint"></div>
+  <div id="result"></div>
+
+  <button onclick="showHint()">💡 Show Hint</button>
+  <button onclick="startGame()">▶️ Start Game</button>
+  <button onclick="endGame()">⛔ End Game</button>
+
+  <h3>🏆 Score: <span id="score">0</span></h3>
+  <div id="leaderboard"></div>
+
+  <script>
+    const questions = [
+      {
+        q: "What is the next number in the series? 2, 4, 8, 16, ?",
+        options: ["20", "24", "32", "30"],
+        answer: "32",
+        hint: "It's doubling each time."
+      },
+      {
+        q: "A train 120m long moving at 60 km/h takes how many seconds to cross a pole?",
+        options: ["6s", "7.2s", "10s", "5s"],
+        answer: "7.2s",
+        hint: "Speed = Distance / Time"
+      },
+      {
+        q: "Find the odd one out: Apple, Orange, Mango, Carrot",
+        options: ["Mango", "Orange", "Apple", "Carrot"],
+        answer: "Carrot",
+        hint: "Only one is not a fruit."
+      },
+      {
+        q: "What is 15% of 200?",
+        options: ["30", "35", "25", "20"],
+        answer: "30",
+        hint: "Use 0.15 × 200"
+      },
+      {
+        q: "Which number is divisible by 3? 127, 133, 138, 145",
+        options: ["127", "133", "138", "145"],
+        answer: "138",
+        hint: "Sum of digits divisible by 3"
+      },
+      {
+        q: "If A is 1, B is 2, what is Z?",
+        options: ["25", "24", "26", "23"],
+        answer: "26",
+        hint: "Simple alphabetical order"
+      },
+      {
+        q: "Speed of 90 km/h = ? m/s",
+        options: ["25", "30", "27", "20"],
+        answer: "25",
+        hint: "× 5/18 conversion"
+      },
+      {
+        q: "Solve: (15 + 5) × 2",
+        options: ["30", "40", "25", "35"],
+        answer: "40",
+        hint: "Use BODMAS"
+      },
+      {
+        q: "Ramesh is older than Suresh. Suresh is older than Rajesh. Who is the youngest?",
+        options: ["Ramesh", "Suresh", "Rajesh", "Can't say"],
+        answer: "Rajesh",
+        hint: "Compare in order"
+      },
+      {
+        q: "Which shape has 6 faces?",
+        options: ["Cube", "Sphere", "Cylinder", "Cone"],
+        answer: "Cube",
+        hint: "Dice-like shape"
+      },
+    ];
+
+    let currentQ = 0;
+    let score = 0;
+    let timer;
+    let timeLeft = 30;
+
+    const qDiv = document.getElementById("question");
+    const optDiv = document.getElementById("options");
+    const scoreSpan = document.getElementById("score");
+    const timerDiv = document.getElementById("timer");
+    const hintDiv = document.getElementById("hint");
+    const resultDiv = document.getElementById("result");
+    const qNumber = document.getElementById("qNumber");
+    const leaderboardDiv = document.getElementById("leaderboard");
+
+    function startGame() {
+      currentQ = 0;
+      score = 0;
+      scoreSpan.textContent = score;
+      leaderboardDiv.innerHTML = "";
+      nextQuestion();
+    }
+
+    function endGame() {
+      clearInterval(timer);
+      qDiv.textContent = "Game Over!";
+      optDiv.innerHTML = "";
+      hintDiv.textContent = "";
+      resultDiv.innerHTML = `🎉 Final Score: <b>${score}</b>`;
+      leaderboardDiv.innerHTML = `<h4>🏁 Thank you for playing!</h4>`;
+    }
+
+    function nextQuestion() {
+      if (currentQ >= questions.length) {
+        endGame();
+        return;
+      }
+
+      const q = questions[currentQ];
+      qDiv.textContent = q.q;
+      hintDiv.textContent = "";
+      resultDiv.textContent = "";
+      qNumber.textContent = currentQ + 1;
+
+      optDiv.innerHTML = "";
+      q.options.forEach(opt => {
+        const btn = document.createElement("button");
+        btn.className = "option-btn";
+        btn.textContent = opt;
+        btn.onclick = () => checkAnswer(opt);
+        optDiv.appendChild(btn);
+      });
+
+      timeLeft = 30;
+      timerDiv.textContent = `⏳ ${timeLeft} seconds`;
+      clearInterval(timer);
+      timer = setInterval(() => {
+        timeLeft--;
+        timerDiv.textContent = `⏳ ${timeLeft} seconds`;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          resultDiv.textContent = "⏱️ Time's up!";
+          currentQ++;
+          setTimeout(nextQuestion, 1000);
+        }
+      }, 1000);
+    }
+
+    function checkAnswer(selected) {
+      clearInterval(timer);
+      const correct = questions[currentQ].answer;
+      if (selected === correct) {
+        resultDiv.textContent = "✅ Correct!";
+        score++;
+        scoreSpan.textContent = score;
+      } else {
+        resultDiv.textContent = `❌ Wrong! Correct: ${correct}`;
+      }
+      currentQ++;
+      setTimeout(nextQuestion, 1000);
+    }
+
+    function showHint() {
+      hintDiv.textContent = "💡 Hint: " + questions[currentQ].hint;
+    }
+  </script>
+
+</body>
+</html>

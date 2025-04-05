@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Adventure</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #282c34;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    #gameContainer {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .question-box {
+      background: #444;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    }
+    .option {
+      background: #61dafb;
+      color: black;
+      margin: 10px;
+      padding: 15px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.3s;
+    }
+    .option:hover {
+      background: #21a1f1;
+    }
+    #result {
+      font-size: 24px;
+      margin-top: 20px;
+    }
+    #startBtn {
+      padding: 15px 30px;
+      font-size: 18px;
+      cursor: pointer;
+      border: none;
+      background-color: #61dafb;
+      color: black;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <div id="introScreen">
+      <h1>🎮 Quiz Adventure</h1>
+      <p>Test your knowledge in a fun and interactive way!</p>
+      <button id="startBtn">Start Game</button>
+    </div>
+
+    <div id="quizScreen" style="display: none;">
+      <div class="question-box">
+        <h2 id="questionText"></h2>
+        <div id="optionsContainer"></div>
+      </div>
+      <div id="result"></div>
+    </div>
+  </div>
+
+  <script>
+    const questions = [
+      {
+        question: "What is the capital of France?",
+        options: ["Berlin", "Madrid", "Paris", "Rome"],
+        answer: "Paris"
+      },
+      {
+        question: "Which language is used for web apps?",
+        options: ["Python", "JavaScript", "C++", "Java"],
+        answer: "JavaScript"
+      },
+      {
+        question: "Which planet is known as the Red Planet?",
+        options: ["Earth", "Mars", "Jupiter", "Saturn"],
+        answer: "Mars"
+      }
+    ];
+
+    let currentQuestionIndex = 0;
+    let score = 0;
+
+    const startBtn = document.getElementById("startBtn");
+    const introScreen = document.getElementById("introScreen");
+    const quizScreen = document.getElementById("quizScreen");
+    const questionText = document.getElementById("questionText");
+    const optionsContainer = document.getElementById("optionsContainer");
+    const result = document.getElementById("result");
+
+    startBtn.onclick = () => {
+      introScreen.style.display = "none";
+      quizScreen.style.display = "block";
+      loadQuestion();
+    };
+
+    function loadQuestion() {
+      const current = questions[currentQuestionIndex];
+      questionText.innerText = current.question;
+      optionsContainer.innerHTML = "";
+      result.innerText = "";
+
+      current.options.forEach(option => {
+        const btn = document.createElement("button");
+        btn.innerText = option;
+        btn.classList.add("option");
+        btn.onclick = () => handleAnswer(option);
+        optionsContainer.appendChild(btn);
+      });
+    }
+
+    function handleAnswer(selected) {
+      const current = questions[currentQuestionIndex];
+      if (selected === current.answer) {
+        score += 10;
+        result.innerText = "✅ Correct!";
+      } else {
+        result.innerText = `❌ Wrong! Correct answer was: ${current.answer}`;
+      }
+
+      setTimeout(() => {
+        currentQuestionIndex++;
+        if (currentQuestionIndex < questions.length) {
+          loadQuestion();
+        } else {
+          showFinalScore();
+        }
+      }, 1000);
+    }
+
+    function showFinalScore() {
+      quizScreen.innerHTML = `
+        <h2>Game Over!</h2>
+        <p>Your final score: ${score}</p>
+        <button id="restartBtn">Play Again</button>
+      `;
+      document.getElementById("restartBtn").onclick = () => location.reload();
+    }
+  </script>
+</body>
+</html>

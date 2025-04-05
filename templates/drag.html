@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Match the Tech Game</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      background: #f0f8ff;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #4CAF50;
+    }
+    .game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+      margin-top: 20px;
+    }
+    .terms, .descriptions {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .term {
+      background-color: #2196F3;
+      color: white;
+      padding: 15px 25px;
+      border-radius: 10px;
+      cursor: grab;
+      font-weight: bold;
+      user-select: none;
+    }
+    .box {
+      border: 2px dashed #aaa;
+      padding: 20px;
+      width: 280px;
+      min-height: 80px;
+      border-radius: 10px;
+      background-color: #fff;
+      transition: background-color 0.3s ease;
+    }
+    .box.hovered {
+      background-color: #e0ffe0;
+    }
+    #score-board, #timer {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    #timer {
+      color: #ff5722;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-weight: bold;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #result {
+      font-size: 1.1rem;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎯 Match the Tech!</h1>
+  <div id="timer">⏱️ Time: 0 sec</div>
+  <div id="score-board">Score: 0/0</div>
+  <p>Drag the correct tech term to its matching description:</p>
+
+  <div class="game-container">
+    <div class="terms" id="terms"></div>
+    <div class="descriptions" id="descriptions"></div>
+  </div>
+
+  <div id="result"></div>
+  <button id="nextBtn" style="display:none;">➡️ Next Round</button>
+  <button onclick="startGame()">🔄 Play Again</button>
+
+  <script>
+    const questions = [
+      { term: "AI", desc: "🤖 Machines simulating human intelligence and decision making." },
+      { term: "IoT", desc: "📡 Connecting devices to the internet to collect and exchange data." },
+      { term: "Python", desc: "🧠 A popular programming language for AI and automation." },
+      { term: "HTML", desc: "📝 Markup language used to structure web content." },
+      { term: "CSS", desc: "🎨 Stylesheet language used to design web pages." },
+      { term: "JavaScript", desc: "⚙️ Programming language for interactive web elements." },
+      { term: "GitHub", desc: "📂 Platform for version control and collaboration." },
+      { term: "Cloud", desc: "☁️ Remote servers to store, manage, and process data." },
+      { term: "SQL", desc: "📊 Language to manage and query relational databases." },
+      { term: "React", desc: "⚛️ JavaScript library for building UI components." }
+    ];
+
+    let score = 0;
+    let round = 0;
+    let totalRounds = 5;
+    let currentSet = [];
+    let time = 0;
+    let timerInterval;
+
+    function startGame() {
+      score = 0;
+      round = 0;
+      time = 0;
+      document.getElementById('result').textContent = '';
+      document.getElementById('nextBtn').style.display = 'none';
+      document.getElementById('score-board').textContent = `Score: 0/${totalRounds}`;
+      timerInterval = setInterval(() => {
+        time++;
+        document.getElementById("timer").textContent = `⏱️ Time: ${time} sec`;
+      }, 1000);
+      nextRound();
+    }
+
+    function shuffle(array) {
+      return [...array].sort(() => Math.random() - 0.5);
+    }
+
+    function nextRound() {
+      if (round === totalRounds) {
+        clearInterval(timerInterval);
+        document.getElementById('result').innerHTML = `🏁 Game Over! Final Score: ${score}/${totalRounds}<br>⏱️ Time Taken: ${time} seconds`;
+        return;
+      }
+
+      round++;
+      document.getElementById('score-board').textContent = `Score: ${score}/${totalRounds}`;
+      document.getElementById('nextBtn').style.display = 'none';
+      const shuffled = shuffle(questions).slice(0, 3);
+      currentSet = shuffled;
+
+      const termsDiv = document.getElementById('terms');
+      const descDiv = document.getElementById('descriptions');
+      termsDiv.innerHTML = '';
+      descDiv.innerHTML = '';
+
+      // Add shuffled terms
+      shuffle(shuffled).forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'term';
+        div.textContent = item.term;
+        div.id = item.term;
+        div.draggable = true;
+        div.addEventListener('dragstart', dragStart);
+        termsDiv.appendChild(div);
+      });
+
+      // Add description boxes
+      shuffled.forEach(item => {
+        const box = document.createElement('div');
+        box.className = 'box';
+        box.setAttribute('data-answer', item.term);
+        box.textContent = item.desc;
+        box.addEventListener('dragover', dragOver);
+        box.addEventListener('dragenter', dragEnter);
+        box.addEventListener('dragleave', dragLeave);
+        box.addEventListener('drop', drop);
+        descDiv.appendChild(box);
+      });
+    }
+
+    function dragStart(e) {
+      e.dataTransfer.setData('text', e.target.id);
+    }
+
+    function dragOver(e) {
+      e.preventDefault();
+    }
+
+    function dragEnter(e) {
+      e.preventDefault();
+      e.target.classList.add('hovered');
+    }
+
+    function dragLeave(e) {
+      e.target.classList.remove('hovered');
+    }
+
+    function drop(e) {
+      const draggedId = e.dataTransfer.getData('text');
+      const answer = e.target.getAttribute('data-answer');
+
+      if (draggedId === answer) {
+        e.target.textContent += ` ✅ (${draggedId})`;
+        document.getElementById(draggedId).remove();
+        e.target.classList.remove('hovered');
+        e.target.style.backgroundColor = '#d4edda';
+
+        if (document.querySelectorAll('.term').length === 0) {
+          score++;
+          document.getElementById('score-board').textContent = `Score: ${score}/${totalRounds}`;
+          document.getElementById('nextBtn').style.display = 'inline-block';
+        }
+      } else {
+        alert("❌ Wrong match!");
+      }
+    }
+
+    document.getElementById('nextBtn').addEventListener('click', nextRound);
+
+    // Auto start game on page load
+    window.onload = startGame;
+  </script>
+</body>
+</html>
